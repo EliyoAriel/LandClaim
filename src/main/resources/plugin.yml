@@ -1,0 +1,44 @@
+name: LandClaim
+version: '${project.version}'
+main: com.landclaim.LandClaimPlugin
+api-version: '1.21'
+description: Radius-based land claiming with economy upgrades
+authors: [BaseFields]
+softdepend: [Vault]
+
+commands:
+  claim:
+    description: Land claim main command
+    usage: /claim <create|delete|list|info|trust|untrust|upgrade|paytax|admin>
+
+permissions:
+  landclaim.create:
+    description: Create claims
+    default: true
+  landclaim.delete:
+    description: Delete own claims
+    default: true
+  landclaim.list:
+    description: List own claims
+    default: true
+  landclaim.info:
+    description: View claim info
+    default: true
+  landclaim.trust:
+    description: Trust members
+    default: true
+  landclaim.untrust:
+    description: Untrust members
+    default: true
+  landclaim.upgrade:
+    description: Upgrade claim tier
+    default: true
+  landclaim.paytax:
+    description: Pay claim tax
+    default: true
+  landclaim.admin:
+    description: Admin commands
+    default: op
+  landclaim.claims.*:
+    description: Maximum number of claims (replace * with a number, e.g. landclaim.claims.5)
+    default: false
