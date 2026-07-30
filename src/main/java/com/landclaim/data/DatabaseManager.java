@@ -40,6 +40,7 @@ public class DatabaseManager {
                     tier INTEGER NOT NULL,
                     active INTEGER NOT NULL DEFAULT 1,
                     created_at TEXT NOT NULL,
+                    deactivated_at TEXT,
                     UNIQUE(owner_uuid, name)
                 )
             """);
@@ -68,6 +69,13 @@ public class DatabaseManager {
             if (!rs.next()) {
                 try (Statement stmt = getConnection().createStatement()) {
                     stmt.execute("ALTER TABLE claims ADD COLUMN name TEXT NOT NULL DEFAULT ''");
+                }
+            }
+        }
+        try (ResultSet rs = getConnection().getMetaData().getColumns(null, null, "claims", "deactivated_at")) {
+            if (!rs.next()) {
+                try (Statement stmt = getConnection().createStatement()) {
+                    stmt.execute("ALTER TABLE claims ADD COLUMN deactivated_at TEXT");
                 }
             }
         }

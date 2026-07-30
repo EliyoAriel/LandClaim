@@ -176,6 +176,8 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        pendingDeletes.values().removeIf(PendingDelete::expired);
+
         if (args.length < 2) {
             player.sendMessage(Component.text("Usage: /claim delete <name> [confirm]", NamedTextColor.RED));
             return true;

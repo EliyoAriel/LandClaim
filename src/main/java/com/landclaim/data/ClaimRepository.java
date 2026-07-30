@@ -21,6 +21,8 @@ public class ClaimRepository {
         try (Statement stmt = db.getConnection().createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM claims")) {
             while (rs.next()) {
+                Long deactivatedAt = rs.getString("deactivated_at") != null
+                        ? rs.getLong("deactivated_at") : null;
                 Claim claim = new Claim(
                         rs.getInt("id"),
                         UUID.fromString(rs.getString("owner_uuid")),
@@ -31,7 +33,8 @@ public class ClaimRepository {
                         rs.getInt("radius"),
                         rs.getInt("tier"),
                         rs.getBoolean("active"),
-                        rs.getLong("created_at")
+                        rs.getLong("created_at"),
+                        deactivatedAt
                 );
                 claim.setMembers(getMembers(claim.getId()));
                 claimsById.put(claim.getId(), claim);
@@ -171,13 +174,21 @@ public class ClaimRepository {
     }
 
     public void setClaimActive(int claimId, boolean active) {
-        try (PreparedStatement ps = db.getConnection().prepareStatement("UPDATE claims SET active = ? WHERE id = ?")) {
-            ps.setInt(1, active ? 1 : 0);
-            ps.setInt(2, claimId);
+        String sql = active
+                ? "UPDATE claims SET active = 1, deactivated_at = NULL WHERE id = ?"
+                : "UPDATE claims SET active = 0, deactivated_at = ? WHERE id = ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
+            if (active) {
+                ps.setInt(1, claimId);
+            } else {
+                ps.setLong(1, Instant.now().toEpochMilli());
+                ps.setInt(2, claimId);
+            }
             ps.executeUpdate();
             Claim claim = claimsById.get(claimId);
             if (claim != null) {
                 claim.setActive(active);
+                claim.setDeactivatedAt(active ? null : Instant.now().toEpochMilli());
             }
         } catch (SQLException e) {
             e.printStackTrace();

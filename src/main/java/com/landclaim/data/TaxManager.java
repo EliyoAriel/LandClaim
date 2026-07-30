@@ -57,7 +57,8 @@ public class TaxManager {
         List<Claim> toDelete = new ArrayList<>();
         for (Claim claim : claimRepository.getAllClaims()) {
             if (claim.isActive()) continue;
-            if (claim.getCreatedAt() < deleteCutoff) {
+            Long deactivatedAt = claim.getDeactivatedAt();
+            if (deactivatedAt != null && deactivatedAt < deleteCutoff) {
                 toDelete.add(claim);
             }
         }

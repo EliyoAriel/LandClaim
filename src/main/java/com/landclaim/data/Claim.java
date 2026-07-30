@@ -14,9 +14,14 @@ public class Claim {
     private int tier;
     private boolean active;
     private final long createdAt;
+    private Long deactivatedAt;
     private List<UUID> members;
 
     public Claim(int id, UUID owner, String name, UUID world, int x, int z, int radius, int tier, boolean active, long createdAt) {
+        this(id, owner, name, world, x, z, radius, tier, active, createdAt, null);
+    }
+
+    public Claim(int id, UUID owner, String name, UUID world, int x, int z, int radius, int tier, boolean active, long createdAt, Long deactivatedAt) {
         this.id = id;
         this.owner = owner;
         this.name = name;
@@ -27,6 +32,7 @@ public class Claim {
         this.tier = tier;
         this.active = active;
         this.createdAt = createdAt;
+        this.deactivatedAt = deactivatedAt;
     }
 
     public boolean contains(UUID worldUuid, int bx, int bz) {
@@ -50,6 +56,8 @@ public class Claim {
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public long getCreatedAt() { return createdAt; }
+    public Long getDeactivatedAt() { return deactivatedAt; }
+    public void setDeactivatedAt(Long deactivatedAt) { this.deactivatedAt = deactivatedAt; }
     public List<UUID> getMembers() { return members; }
     public void setMembers(List<UUID> members) { this.members = members; }
 }

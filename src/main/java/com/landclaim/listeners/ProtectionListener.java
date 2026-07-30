@@ -74,7 +74,10 @@ public class ProtectionListener implements Listener {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!configManager.isWorldEnabled(victim.getWorld().getName())) return;
         Claim claim = repository.getClaimAt(victim.getWorld().getUID(), victim.getLocation().getBlockX(), victim.getLocation().getBlockZ());
-        if (claim != null && claim.isActive()) {
+        if (claim == null || !claim.isActive()) return;
+        boolean attackerTrusted = claim.getOwner().equals(attacker.getUniqueId()) || claim.getMembers().contains(attacker.getUniqueId());
+        boolean victimTrusted = claim.getOwner().equals(victim.getUniqueId()) || claim.getMembers().contains(victim.getUniqueId());
+        if (!attackerTrusted || !victimTrusted) {
             event.setCancelled(true);
             attacker.sendActionBar(Component.text("PvP is disabled in this claim.", NamedTextColor.RED));
         }
