@@ -16,6 +16,7 @@ public class ConfigManager {
     private List<String> enabledWorlds;
     private String listFormat;
     private String infoFormat;
+    private boolean preventClaimNearSpawn;
     private boolean taxEnabled;
     private double taxPerTier;
     private int taxPeriodDays;
@@ -48,6 +49,7 @@ public class ConfigManager {
         maxClaimsPerPlayer = plugin.getConfig().getInt("max-claims-per-player", 3);
         refundOnDelete = plugin.getConfig().getDouble("refund-on-delete", 0.0);
         enabledWorlds = plugin.getConfig().getStringList("enabled-worlds");
+        preventClaimNearSpawn = plugin.getConfig().getBoolean("prevent-claim-near-spawn", true);
         listFormat = plugin.getConfig().getString("list-format", "&6{name} &7- &f({x}, {z}) &7Radius: &f{radius} &7Tier: &f{tier} &7[{status}]");
         infoFormat = plugin.getConfig().getString("info-format", "&6=== {name} ===\n&7Owner: &f{owner}\n&7Location: &f({x}, {z}) in {world}\n&7Radius: &f{radius}\n&7Tier: &f{tier}\n&7Status: &f{status}\n&7Members: &f{members}");
         taxEnabled = plugin.getConfig().getBoolean("tax.enabled", false);
@@ -66,6 +68,7 @@ public class ConfigManager {
     public double getRefundOnDelete() { return refundOnDelete; }
     public List<String> getEnabledWorlds() { return enabledWorlds; }
     public boolean isWorldEnabled(String worldName) { return enabledWorlds.contains(worldName); }
+    public boolean isPreventClaimNearSpawn() { return preventClaimNearSpawn; }
     public String getListFormat() { return listFormat; }
     public String getInfoFormat() { return infoFormat; }
     public boolean isTaxEnabled() { return taxEnabled; }

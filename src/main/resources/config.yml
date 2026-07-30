@@ -20,6 +20,9 @@ tiers:
 # Maximum number of claims per player
 max-claims-per-player: 3
 
+# Prevent claiming within spawn protection radius
+prevent-claim-near-spawn: true
+
 # Display format for /claim list (use & for color codes)
 list-format: "&6{name} &7- &f({x}, {z}) &7Radius: &f{radius} &7Tier: &f{tier} &7[{status}]"
 

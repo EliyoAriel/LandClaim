@@ -129,6 +129,20 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (configManager.isPreventClaimNearSpawn()) {
+            TierConfig tier1 = configManager.getTiers().getFirst();
+            Location spawn = loc.getWorld().getSpawnLocation();
+            int spawnRadius = plugin.getServer().getSpawnRadius();
+            if (spawnRadius > 0) {
+                double dx = loc.getBlockX() - spawn.getBlockX();
+                double dz = loc.getBlockZ() - spawn.getBlockZ();
+                if (Math.sqrt(dx * dx + dz * dz) < spawnRadius + tier1.getRadius()) {
+                    player.sendMessage(Component.text("You cannot claim this close to spawn.", NamedTextColor.RED));
+                    return true;
+                }
+            }
+        }
+
         String name;
         if (args.length >= 2) {
             name = args[1].toLowerCase();
