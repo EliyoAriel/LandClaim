@@ -147,4 +147,19 @@ public class TaxManager {
     public double getTaxAmount(Claim claim) {
         return configManager.getTaxPerTier() * claim.getTier();
     }
+
+    public boolean isOverdue(Claim claim) {
+        long periodMs = Instant.now().minus(configManager.getTaxPeriodDays(), ChronoUnit.DAYS).toEpochMilli();
+        return !hasPaidRecentTax(claim, periodMs);
+    }
+
+    public double getTotalOverdue(Player player) {
+        double total = 0;
+        for (Claim claim : claimRepository.getPlayerClaims(player.getUniqueId())) {
+            if (isOverdue(claim)) {
+                total += getTaxAmount(claim);
+            }
+        }
+        return total;
+    }
 }

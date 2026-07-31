@@ -12,6 +12,9 @@ Radius-based cylindrical land claiming plugin for Paper 1.21.4.
 
 | Command | Description |
 |---|---|
+| `/claim` | Open the claim management GUI (when `gui.open-on-bare-claim` is enabled). |
+| `/claim gui` | Open the claim management GUI. |
+| `/claim help` | Show the command help. |
 | `/claim create [name]` | Claim land at your location. Name is lowercased, alphanumeric/hyphen/underscore only. Auto-names `claim-1`, `claim-2` etc. if omitted. |
 | `/claim delete <name> [confirm]` | Delete a claim by name. Requires re-running or appending `confirm`. |
 | `/claim list` | List your claims. |
@@ -45,6 +48,19 @@ Radius-based cylindrical land claiming plugin for Paper 1.21.4.
 | `landclaim.tier.1` | true | Unlocks tier 1 claims |
 | `landclaim.tier.<n>` (n ≥ 2) | false | Unlocks tier `n` (grant to allow upgrades) |
 | `landclaim.claims.<n>` | — | Overrides max claims per player (replace with number) |
+
+## GUI
+
+`/claim gui` (or bare `/claim` when `gui.open-on-bare-claim` is enabled) opens an inventory GUI with the same actions as the chat commands:
+
+- **Claims List** — all your claims, paged; click one to manage it.
+- **Claim Detail** — upgrade, flags, members, pay tax, rename, display name, show boundary, delete.
+- **Flags** — toggle claim-wide flags.
+- **Members** — trust/untrust members and toggle per-member permissions.
+
+Text input (trust player, rename, display name) uses a chat prompt — type the value after clicking, or `cancel`. Deleting a claim requires clicking the Delete button twice to confirm.
+
+Flag and permission toggles in the **Flags** and **Members** pages show a short description of what each option does.
 
 ## Configuration
 
@@ -91,6 +107,11 @@ actionbar-format: "&f{owner} &7owns &f{displayname}"
 
 # Refund percentage on delete (0.0 - 1.0)
 refund-on-delete: 0.7
+
+# GUI settings
+gui:
+  enabled: true
+  open-on-bare-claim: true
 
 # Tax settings
 tax:

@@ -51,6 +51,11 @@ tax:
   period-days: 7
   grace-period-days: 7
 
+# GUI settings
+gui:
+  enabled: true
+  open-on-bare-claim: true
+
 # Per-claim flag defaults (owners can override per claim with /claim flag)
 flags:
   pvp: false

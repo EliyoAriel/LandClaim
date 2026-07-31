@@ -5,9 +5,10 @@ import com.landclaim.config.ConfigManager;
 import com.landclaim.config.TierConfig;
 import com.landclaim.data.Claim;
 import com.landclaim.data.ClaimRepository;
-import com.landclaim.data.TaxManager;
 import com.landclaim.economy.EconomyManager;
 import com.landclaim.protection.ClaimAccess;
+import com.landclaim.service.ClaimActionResult;
+import com.landclaim.service.ClaimService;
 import com.landclaim.util.ClaimFormat;
 import com.landclaim.util.ParticleUtil;
 import net.kyori.adventure.text.Component;
@@ -28,9 +29,9 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
     private final LandClaimPlugin plugin;
     private final ClaimRepository claimRepository;
     private final EconomyManager economyManager;
-    private final TaxManager taxManager;
     private final ConfigManager configManager;
     private final ClaimAccess claimAccess;
+    private final ClaimService claimService;
     private final LegacyComponentSerializer legacy = LegacyComponentSerializer.legacyAmpersand();
     private final Map<UUID, PendingDelete> pendingDeletes = new HashMap<>();
     private static final long CONFIRM_TIMEOUT_MS = 30_000;
@@ -47,13 +48,14 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    public ClaimCommand(LandClaimPlugin plugin, ClaimRepository claimRepository, EconomyManager economyManager, TaxManager taxManager, ConfigManager configManager, ClaimAccess claimAccess) {
+    public ClaimCommand(LandClaimPlugin plugin, ClaimRepository claimRepository, EconomyManager economyManager,
+                        ConfigManager configManager, ClaimAccess claimAccess, ClaimService claimService) {
         this.plugin = plugin;
         this.claimRepository = claimRepository;
         this.economyManager = economyManager;
-        this.taxManager = taxManager;
         this.configManager = configManager;
         this.claimAccess = claimAccess;
+        this.claimService = claimService;
     }
 
     @Override
@@ -64,7 +66,11 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            sendHelp(player);
+            if (configManager.isGuiEnabled() && configManager.isOpenGuiOnBareClaim()) {
+                plugin.getGuiManager().openClaimGui(player);
+            } else {
+                sendHelp(player);
+            }
             return true;
         }
 
@@ -81,6 +87,18 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             case "perm" -> onPerm(player, args);
             case "rename" -> onRename(player, args);
             case "displayname" -> onDisplayName(player, args);
+            case "gui" -> {
+                if (configManager.isGuiEnabled()) {
+                    plugin.getGuiManager().openClaimGui(player);
+                } else {
+                    player.sendMessage(Component.text("The GUI is disabled.", NamedTextColor.RED));
+                }
+                yield true;
+            }
+            case "help" -> {
+                sendHelp(player);
+                yield true;
+            }
             case "admin" -> {
                 if (plugin.getClaimAdminCommand() != null) {
                     yield plugin.getClaimAdminCommand().execute(sender, args);
@@ -96,6 +114,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(Player player) {
         player.sendMessage(Component.text("=== LandClaim Commands ===", NamedTextColor.GOLD));
+        player.sendMessage(Component.text("/claim", NamedTextColor.YELLOW).append(Component.text(" — Open the claim GUI", NamedTextColor.WHITE)));
         player.sendMessage(Component.text("/claim create [name]", NamedTextColor.YELLOW).append(Component.text(" — Claim land at your location", NamedTextColor.WHITE)));
         player.sendMessage(Component.text("/claim delete <name> [confirm]", NamedTextColor.YELLOW).append(Component.text(" — Delete a claim", NamedTextColor.WHITE)));
         player.sendMessage(Component.text("/claim list", NamedTextColor.YELLOW).append(Component.text(" — List your claims", NamedTextColor.WHITE)));
@@ -123,7 +142,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        int maxTier = getMaxTier(player);
+        int maxTier = claimService.getMaxTier(player);
         if (maxTier < 1) {
             player.sendMessage(Component.text("You don't have access to any claim tier.", NamedTextColor.RED));
             return true;
@@ -233,24 +252,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         }
 
         pendingDeletes.remove(player.getUniqueId());
-
-        double refundRate = configManager.getRefundOnDelete();
-        if (refundRate > 0 && economyManager.hasEconomy()) {
-            double totalSpent = 0;
-            for (TierConfig tier : configManager.getTiers()) {
-                if (tier.getTier() <= claim.getTier()) {
-                    totalSpent += tier.getCost();
-                }
-            }
-            double refund = totalSpent * refundRate;
-            economyManager.deposit(player, refund);
-            player.sendMessage(Component.text("Refunded: " + economyManager.format(refund), NamedTextColor.GREEN));
-        }
-
-        claimRepository.deleteClaim(claim.getId());
-        player.sendMessage(Component.text("Claim \"", NamedTextColor.GREEN)
-                .append(renderDisplayName(claim))
-                .append(Component.text("\" deleted.", NamedTextColor.GREEN)));
+        sendResult(player, claimService.delete(player, claim));
         return true;
     }
 
@@ -320,19 +322,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("Player not found.", NamedTextColor.RED));
             return true;
         }
-        if (target.equals(player)) {
-            player.sendMessage(Component.text("You're already the owner.", NamedTextColor.RED));
-            return true;
-        }
-        if (claim.getMembers().contains(target.getUniqueId())) {
-            player.sendMessage(Component.text(target.getName() + " is already trusted.", NamedTextColor.YELLOW));
-            return true;
-        }
-        claimRepository.addMember(claim.getId(), target.getUniqueId());
-        player.sendMessage(Component.text(target.getName() + " is now trusted.", NamedTextColor.GREEN));
-        target.sendMessage(Component.text("You've been trusted in " + player.getName() + "'s claim \"", NamedTextColor.GREEN)
-                .append(renderDisplayName(claim))
-                .append(Component.text("\".", NamedTextColor.GREEN)));
+        sendResult(player, claimService.trust(player, claim, target));
         return true;
     }
 
@@ -355,13 +345,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("Player not found.", NamedTextColor.RED));
             return true;
         }
-        if (!claim.getMembers().contains(target.getUniqueId())) {
-            player.sendMessage(Component.text(target.getName() + " is not trusted in this claim.", NamedTextColor.YELLOW));
-            return true;
-        }
-        claimRepository.removeMember(claim.getId(), target.getUniqueId());
-        claimRepository.deleteMemberFlags(claim.getId(), target.getUniqueId());
-        player.sendMessage(Component.text(target.getName() + " has been untrusted.", NamedTextColor.GREEN));
+        sendResult(player, claimService.untrust(player, claim, target.getUniqueId()));
         return true;
     }
 
@@ -382,39 +366,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        int currentTier = claim.getTier();
-        int nextTierNum = currentTier + 1;
-        int maxTier = getMaxTier(player);
-
-        if (nextTierNum > maxTier) {
-            player.sendMessage(Component.text("You've reached your maximum allowed tier.", NamedTextColor.RED));
-            return true;
-        }
-
-        TierConfig nextTier = configManager.getTiers().stream()
-                .filter(t -> t.getTier() == nextTierNum)
-                .findFirst().orElse(null);
-        if (nextTier == null) {
-            player.sendMessage(Component.text("No higher tiers available.", NamedTextColor.RED));
-            return true;
-        }
-
-        if (claimRepository.overlapsAny(claim.getWorld(), claim.getX(), claim.getZ(), nextTier.getRadius(), claim.getId())) {
-            player.sendMessage(Component.text("Upgrade would overlap another claim.", NamedTextColor.RED));
-            return true;
-        }
-
-        if (economyManager.hasEconomy() && !economyManager.hasBalance(player, nextTier.getCost())) {
-            player.sendMessage(Component.text("You need " + economyManager.format(nextTier.getCost()) + " to upgrade.", NamedTextColor.RED));
-            return true;
-        }
-
-        economyManager.withdraw(player, nextTier.getCost());
-        claimRepository.upgradeClaim(claim.getId(), nextTier.getRadius(), nextTier.getTier());
-        player.sendMessage(Component.text("Claim \"", NamedTextColor.GREEN)
-                .append(renderDisplayName(claim))
-                .append(Component.text("\" upgraded to tier " + nextTierNum + "! Radius: " + nextTier.getRadius(), NamedTextColor.GREEN)));
-        ParticleUtil.showClaimBoundary(player, claim);
+        sendResult(player, claimService.upgrade(player, claim));
         return true;
     }
 
@@ -423,11 +375,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("You don't have permission.", NamedTextColor.RED));
             return true;
         }
-        if (!configManager.isTaxEnabled()) {
-            player.sendMessage(Component.text("Tax system is disabled.", NamedTextColor.YELLOW));
-            return true;
-        }
-        taxManager.payTax(player);
+        sendResult(player, claimService.payTax(player));
         return true;
     }
 
@@ -462,11 +410,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("Usage: /claim flag <claim> <flag> [on|off]", NamedTextColor.RED));
             return true;
         }
-        boolean enabled = value.equals("on");
-        claimRepository.setClaimFlag(claim.getId(), flag, enabled);
-        player.sendMessage(Component.text("Flag \"" + flag + "\" is now " + value + " for \"", NamedTextColor.GREEN)
-                .append(renderDisplayName(claim))
-                .append(Component.text("\".", NamedTextColor.GREEN)));
+        sendResult(player, claimService.setFlag(player, claim, flag, value.equals("on")));
         return true;
     }
 
@@ -510,10 +454,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("Usage: /claim perm <claim> <player> <flag> [on|off]", NamedTextColor.RED));
             return true;
         }
-        claimRepository.setMemberFlag(claim.getId(), target.getUniqueId(), flag, value.equals("on"));
-        player.sendMessage(Component.text(target.getName() + "'s \"" + flag + "\" is now " + value + " in \"", NamedTextColor.GREEN)
-                .append(renderDisplayName(claim))
-                .append(Component.text("\".", NamedTextColor.GREEN)));
+        sendResult(player, claimService.setMemberFlag(player, claim, target.getUniqueId(), flag, value.equals("on")));
         return true;
     }
 
@@ -531,22 +472,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("You don't have a claim named \"" + args[1] + "\".", NamedTextColor.RED));
             return true;
         }
-        String newName = args[2].toLowerCase();
-        if (!newName.matches("[a-z0-9_-]+")) {
-            player.sendMessage(Component.text("Claim name can only contain letters, numbers, underscores, and hyphens.", NamedTextColor.RED));
-            return true;
-        }
-        Claim other = claimRepository.getPlayerClaimByName(player.getUniqueId(), newName);
-        if (other != null && other.getId() != claim.getId()) {
-            player.sendMessage(Component.text("You already have a claim with that name.", NamedTextColor.RED));
-            return true;
-        }
-        if (newName.equalsIgnoreCase(claim.getName())) {
-            player.sendMessage(Component.text("That's already the claim's name.", NamedTextColor.YELLOW));
-            return true;
-        }
-        claimRepository.renameClaim(claim.getId(), newName);
-        player.sendMessage(Component.text("Claim renamed to \"" + newName + "\".", NamedTextColor.GREEN));
+        sendResult(player, claimService.rename(player, claim, args[2].toLowerCase()));
         return true;
     }
 
@@ -564,37 +490,17 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(Component.text("You don't have a claim named \"" + args[1] + "\".", NamedTextColor.RED));
             return true;
         }
-        String text = String.join(" ", Arrays.copyOfRange(args, 2, args.length)).trim()
-                .replaceAll("[\\r\\n\\u0000-\\u001f\\u007f-\\u009f]", "");
-        if (text.isEmpty()) {
-            player.sendMessage(Component.text("Usage: /claim displayname <claim> <text...> (use - to clear)", NamedTextColor.RED));
-            return true;
-        }
-        if (text.equals("-") || text.equalsIgnoreCase("reset")) {
-            claimRepository.setDisplayName(claim.getId(), null);
-            player.sendMessage(Component.text("Display name for \"" + claim.getName() + "\" cleared.", NamedTextColor.GREEN));
-            return true;
-        }
-        if (text.length() > 48) {
-            player.sendMessage(Component.text("Display name is too long (max 48 characters).", NamedTextColor.RED));
-            return true;
-        }
-        claimRepository.setDisplayName(claim.getId(), text);
-        player.sendMessage(Component.text("Display name for \"" + claim.getName() + "\" set to \"", NamedTextColor.GREEN)
-                .append(legacy.deserialize(text))
-                .append(Component.text("\".", NamedTextColor.GREEN)));
+        String text = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+        sendResult(player, claimService.setDisplayName(player, claim, text));
         return true;
     }
 
-    private int getMaxTier(Player player) {
-        List<TierConfig> tiers = configManager.getTiers();
-        int max = 0;
-        for (TierConfig tier : tiers) {
-            if (player.hasPermission("landclaim.tier." + tier.getTier())) {
-                max = tier.getTier();
+    private void sendResult(Player player, ClaimActionResult result) {
+        for (Component message : result.messages()) {
+            if (!message.equals(Component.empty())) {
+                player.sendMessage(message);
             }
         }
-        return max;
     }
 
     private Component formatClaimTemplate(String template, Claim claim) {
@@ -616,7 +522,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            List<String> subs = Arrays.asList("create", "delete", "list", "info", "trust", "untrust", "upgrade", "paytax", "flag", "perm", "rename", "displayname", "admin");
+            List<String> subs = Arrays.asList("create", "delete", "list", "info", "trust", "untrust", "upgrade", "paytax", "flag", "perm", "rename", "displayname", "gui", "help", "admin");
             return subs.stream().filter(s -> s.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
         }
         if (args.length == 2 && sender instanceof Player player) {

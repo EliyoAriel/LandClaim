@@ -27,6 +27,8 @@ public class ConfigManager {
     private double taxPerTier;
     private int taxPeriodDays;
     private int gracePeriodDays;
+    private boolean guiEnabled;
+    private boolean openGuiOnBareClaim;
     private Map<String, Boolean> flagDefaults = new HashMap<>();
 
     public static final List<String> CLAIM_FLAGS = List.of(
@@ -73,6 +75,8 @@ public class ConfigManager {
         taxPerTier = plugin.getConfig().getDouble("tax.amount-per-tier", 50.0);
         taxPeriodDays = plugin.getConfig().getInt("tax.period-days", 7);
         gracePeriodDays = plugin.getConfig().getInt("tax.grace-period-days", 7);
+        guiEnabled = plugin.getConfig().getBoolean("gui.enabled", true);
+        openGuiOnBareClaim = plugin.getConfig().getBoolean("gui.open-on-bare-claim", true);
 
         flagDefaults.clear();
         ConfigurationSection flagsSection = plugin.getConfig().getConfigurationSection("flags");
@@ -104,6 +108,8 @@ public class ConfigManager {
     public double getTaxPerTier() { return taxPerTier; }
     public int getTaxPeriodDays() { return taxPeriodDays; }
     public int getGracePeriodDays() { return gracePeriodDays; }
+    public boolean isGuiEnabled() { return guiEnabled; }
+    public boolean isOpenGuiOnBareClaim() { return openGuiOnBareClaim; }
 
     public int getEffectiveMaxClaims(Player player) {
         for (int i = 100; i >= 1; i--) {

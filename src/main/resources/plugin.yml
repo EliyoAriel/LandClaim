@@ -9,7 +9,7 @@ softdepend: [Vault]
 commands:
   claim:
     description: Land claim main command
-    usage: /claim <create|delete|list|info|trust|untrust|upgrade|paytax|admin>
+    usage: /claim <create|delete|list|info|trust|untrust|upgrade|paytax|gui|help|admin>
 
 permissions:
   landclaim.create:
