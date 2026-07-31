@@ -4,6 +4,7 @@ import com.landclaim.LandClaimPlugin;
 import com.landclaim.config.ConfigManager;
 import com.landclaim.data.Claim;
 import com.landclaim.data.ClaimRepository;
+import com.landclaim.util.ClaimFormat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
@@ -79,17 +80,21 @@ public class GreetingListener implements Listener {
         Component title = legacy.deserialize(titleFormat
                 .replace("{name}", claim.getName())
                 .replace("{owner}", ownerName)
-                .replace("{displayname}", claim.getDisplayName()));
+                .replace("{displayname}", ClaimFormat.styledDisplayName(titleFormat,
+                        ClaimFormat.resolvedDisplayName(claim, repository, this::resolveOwnerName))));
         Component subtitle = legacy.deserialize(configManager.getTitleSubtitleFormat()
                 .replace("{owner}", ownerName));
         player.showTitle(Title.title(title, subtitle, TITLE_TIMES));
     }
 
     private void showActionBar(Player player, Claim claim) {
-        String format = configManager.getActionbarFormat()
+        String baseFormat = configManager.getActionbarFormat();
+        String format = baseFormat
                 .replace("{owner}", resolveOwnerName(claim.getOwner()))
                 .replace("{name}", claim.getName())
-                .replace("{displayname}", claim.getDisplayName());        player.sendActionBar(legacy.deserialize(format));
+                .replace("{displayname}", ClaimFormat.styledDisplayName(baseFormat,
+                        ClaimFormat.resolvedDisplayName(claim, repository, this::resolveOwnerName)));
+        player.sendActionBar(legacy.deserialize(format));
         BukkitTask previous = actionBarClearTasks.remove(player.getUniqueId());
         if (previous != null) {
             previous.cancel();

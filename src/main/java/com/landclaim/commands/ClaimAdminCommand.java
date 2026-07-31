@@ -5,6 +5,7 @@ import com.landclaim.config.ConfigManager;
 import com.landclaim.data.Claim;
 import com.landclaim.data.ClaimRepository;
 import com.landclaim.protection.ClaimAccess;
+import com.landclaim.util.ClaimFormat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -107,27 +108,9 @@ public class ClaimAdminCommand {
     }
 
     private Component formatClaimTemplate(String template, Claim claim) {
-        String ownerName = getOwnerName(claim.getOwner());
-        String status = claim.isActive() ? "Active" : "Inactive";
-        String worldName = Bukkit.getWorld(claim.getWorld()) != null
-                ? Bukkit.getWorld(claim.getWorld()).getName() : "unknown";
-        String membersStr = claim.getMembers().stream()
-                .map(this::getOwnerName)
-                .collect(Collectors.joining(", "));
-        if (membersStr.isEmpty()) membersStr = "None";
-
-        String formatted = template
-                .replace("{name}", claim.getName())
-                .replace("{owner}", ownerName)
-                .replace("{x}", String.valueOf(claim.getX()))
-                .replace("{z}", String.valueOf(claim.getZ()))
-                .replace("{radius}", String.valueOf(claim.getRadius()))
-                .replace("{tier}", String.valueOf(claim.getTier()))
-                .replace("{status}", status)
-                .replace("{world}", worldName)
-                .replace("{id}", String.valueOf(claim.getId()))
-                .replace("{members}", membersStr)
-                .replace("{displayname}", claim.getDisplayName());
+        String formatted = ClaimFormat.resolveFields(template, claim, claimRepository, this::getOwnerName)
+                .replace("{displayname}", ClaimFormat.styledDisplayName(template,
+                        ClaimFormat.resolvedDisplayName(claim, claimRepository, this::getOwnerName)));
 
         return LegacyComponentSerializer.legacyAmpersand().deserialize(formatted);
     }

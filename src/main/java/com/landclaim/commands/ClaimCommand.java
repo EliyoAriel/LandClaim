@@ -8,6 +8,7 @@ import com.landclaim.data.ClaimRepository;
 import com.landclaim.data.TaxManager;
 import com.landclaim.economy.EconomyManager;
 import com.landclaim.protection.ClaimAccess;
+import com.landclaim.util.ClaimFormat;
 import com.landclaim.util.ParticleUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -224,7 +225,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         if (!confirmed) {
             pendingDeletes.put(player.getUniqueId(), new PendingDelete(claim.getId()));
             player.sendMessage(Component.text("Are you sure you want to delete \"", NamedTextColor.YELLOW)
-                    .append(legacy.deserialize(claim.getDisplayName()))
+                    .append(renderDisplayName(claim))
                     .append(Component.text("\"? ", NamedTextColor.YELLOW))
                     .append(Component.text("/claim delete " + claimName + " confirm", NamedTextColor.GOLD)
                     .append(Component.text(" to confirm.", NamedTextColor.YELLOW))));
@@ -248,7 +249,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
 
         claimRepository.deleteClaim(claim.getId());
         player.sendMessage(Component.text("Claim \"", NamedTextColor.GREEN)
-                .append(legacy.deserialize(claim.getDisplayName()))
+                .append(renderDisplayName(claim))
                 .append(Component.text("\" deleted.", NamedTextColor.GREEN)));
         return true;
     }
@@ -330,7 +331,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         claimRepository.addMember(claim.getId(), target.getUniqueId());
         player.sendMessage(Component.text(target.getName() + " is now trusted.", NamedTextColor.GREEN));
         target.sendMessage(Component.text("You've been trusted in " + player.getName() + "'s claim \"", NamedTextColor.GREEN)
-                .append(legacy.deserialize(claim.getDisplayName()))
+                .append(renderDisplayName(claim))
                 .append(Component.text("\".", NamedTextColor.GREEN)));
         return true;
     }
@@ -411,7 +412,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         economyManager.withdraw(player, nextTier.getCost());
         claimRepository.upgradeClaim(claim.getId(), nextTier.getRadius(), nextTier.getTier());
         player.sendMessage(Component.text("Claim \"", NamedTextColor.GREEN)
-                .append(legacy.deserialize(claim.getDisplayName()))
+                .append(renderDisplayName(claim))
                 .append(Component.text("\" upgraded to tier " + nextTierNum + "! Radius: " + nextTier.getRadius(), NamedTextColor.GREEN)));
         ParticleUtil.showClaimBoundary(player, claim);
         return true;
@@ -452,7 +453,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         if (args.length < 4) {
             boolean current = claimRepository.getClaimFlag(claim.getId(), flag);
             player.sendMessage(Component.text("Flag \"" + flag + "\" is " + (current ? "on" : "off") + " for \"", NamedTextColor.YELLOW)
-                    .append(legacy.deserialize(claim.getDisplayName()))
+                    .append(renderDisplayName(claim))
                     .append(Component.text("\".", NamedTextColor.YELLOW)));
             return true;
         }
@@ -464,7 +465,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         boolean enabled = value.equals("on");
         claimRepository.setClaimFlag(claim.getId(), flag, enabled);
         player.sendMessage(Component.text("Flag \"" + flag + "\" is now " + value + " for \"", NamedTextColor.GREEN)
-                .append(legacy.deserialize(claim.getDisplayName()))
+                .append(renderDisplayName(claim))
                 .append(Component.text("\".", NamedTextColor.GREEN)));
         return true;
     }
@@ -500,7 +501,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         if (args.length < 5) {
             boolean current = claimRepository.getMemberFlag(claim.getId(), target.getUniqueId(), flag);
             player.sendMessage(Component.text(target.getName() + "'s \"" + flag + "\" is " + (current ? "on" : "off") + " in \"", NamedTextColor.YELLOW)
-                    .append(legacy.deserialize(claim.getDisplayName()))
+                    .append(renderDisplayName(claim))
                     .append(Component.text("\".", NamedTextColor.YELLOW)));
             return true;
         }
@@ -511,7 +512,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         }
         claimRepository.setMemberFlag(claim.getId(), target.getUniqueId(), flag, value.equals("on"));
         player.sendMessage(Component.text(target.getName() + "'s \"" + flag + "\" is now " + value + " in \"", NamedTextColor.GREEN)
-                .append(legacy.deserialize(claim.getDisplayName()))
+                .append(renderDisplayName(claim))
                 .append(Component.text("\".", NamedTextColor.GREEN)));
         return true;
     }
@@ -597,33 +598,15 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
     }
 
     private Component formatClaimTemplate(String template, Claim claim) {
-        String ownerName = getOwnerName(claim.getOwner());
-        String status = claim.isActive() ? "Active" : "Inactive";
-        String worldName = Bukkit.getWorld(claim.getWorld()) != null
-                ? Bukkit.getWorld(claim.getWorld()).getName() : "unknown";
-        String membersStr = claim.getMembers().stream()
-                .map(this::getOwnerName)
-                .collect(Collectors.joining(", "));
-        if (membersStr.isEmpty()) membersStr = "None";
-        String flagsStr = ConfigManager.CLAIM_FLAGS.stream()
-                .map(f -> f + ": " + (claimRepository.getClaimFlag(claim.getId(), f) ? "on" : "off"))
-                .collect(Collectors.joining(", "));
-
-        String formatted = template
-                .replace("{name}", claim.getName())
-                .replace("{owner}", ownerName)
-                .replace("{x}", String.valueOf(claim.getX()))
-                .replace("{z}", String.valueOf(claim.getZ()))
-                .replace("{radius}", String.valueOf(claim.getRadius()))
-                .replace("{tier}", String.valueOf(claim.getTier()))
-                .replace("{status}", status)
-                .replace("{world}", worldName)
-                .replace("{id}", String.valueOf(claim.getId()))
-                .replace("{members}", membersStr)
-                .replace("{flags}", flagsStr)
-                .replace("{displayname}", claim.getDisplayName());
+        String formatted = ClaimFormat.resolveFields(template, claim, claimRepository, this::getOwnerName)
+                .replace("{displayname}", ClaimFormat.styledDisplayName(template,
+                        ClaimFormat.resolvedDisplayName(claim, claimRepository, this::getOwnerName)));
 
         return LegacyComponentSerializer.legacyAmpersand().deserialize(formatted);
+    }
+
+    private Component renderDisplayName(Claim claim) {
+        return legacy.deserialize(ClaimFormat.resolvedDisplayName(claim, claimRepository, this::getOwnerName));
     }
 
     private String getOwnerName(UUID uuid) {
