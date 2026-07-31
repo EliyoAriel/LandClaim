@@ -1,5 +1,6 @@
 package com.landclaim;
 
+import com.landclaim.boundary.BoundaryManager;
 import com.landclaim.commands.ClaimAdminCommand;
 import com.landclaim.commands.ClaimCommand;
 import com.landclaim.config.ConfigManager;
@@ -27,6 +28,7 @@ public class LandClaimPlugin extends JavaPlugin {
     private ClaimAccess claimAccess;
     private ClaimService claimService;
     private GuiManager guiManager;
+    private BoundaryManager boundaryManager;
     private ClaimCommand claimCommand;
     private ClaimAdminCommand claimAdminCommand;
 
@@ -40,6 +42,7 @@ public class LandClaimPlugin extends JavaPlugin {
         this.claimAccess = new ClaimAccess(this, claimRepository, configManager);
         this.claimService = new ClaimService(this, claimRepository, configManager, economyManager, taxManager, claimAccess);
         this.guiManager = new GuiManager(this);
+        this.boundaryManager = new BoundaryManager(this);
         this.claimCommand = new ClaimCommand(this, claimRepository, economyManager, configManager, claimAccess, claimService);
         this.claimAdminCommand = new ClaimAdminCommand(this, claimRepository, configManager, claimAccess);
 
@@ -59,7 +62,9 @@ public class LandClaimPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GreetingListener(this, claimRepository, configManager), this);
         getServer().getPluginManager().registerEvents(guiManager, this);
         getServer().getPluginManager().registerEvents(new GuiInputHandler(guiManager), this);
+        getServer().getPluginManager().registerEvents(boundaryManager, this);
 
+        boundaryManager.start();
         taxManager.scheduleTaxCheck();
 
         getLogger().info("LandClaim enabled.");
@@ -69,6 +74,9 @@ public class LandClaimPlugin extends JavaPlugin {
     public void onDisable() {
         if (guiManager != null) {
             guiManager.shutdown();
+        }
+        if (boundaryManager != null) {
+            boundaryManager.shutdown();
         }
         if (databaseManager != null) {
             databaseManager.close();
@@ -83,6 +91,7 @@ public class LandClaimPlugin extends JavaPlugin {
     public ClaimAccess getClaimAccess() { return claimAccess; }
     public ClaimService getClaimService() { return claimService; }
     public GuiManager getGuiManager() { return guiManager; }
+    public BoundaryManager getBoundaryManager() { return boundaryManager; }
     public ClaimCommand getClaimCommand() { return claimCommand; }
     public ClaimAdminCommand getClaimAdminCommand() { return claimAdminCommand; }
 }

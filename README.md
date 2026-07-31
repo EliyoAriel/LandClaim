@@ -60,6 +60,8 @@ Radius-based cylindrical land claiming plugin for Paper 1.21.4.
 
 Text input (trust player, rename, display name) uses a chat prompt — type the value after clicking, or `cancel`. Deleting a claim requires clicking the Delete button twice to confirm.
 
+The **Show Boundary** button is a toggle — click it to keep the claim's particle boundary visible (re-drawn every 0.5s) until you click it again. It turns off automatically when you quit or the claim is deleted.
+
 Flag and permission toggles in the **Flags** and **Members** pages show a short description of what each option does.
 
 ## Configuration

@@ -8,7 +8,8 @@ import org.bukkit.entity.Player;
 
 public class ParticleUtil {
 
-    private static final int POINTS_PER_RING = 24;
+    private static final double SPACING_BLOCKS = 1.0;
+    private static final int MAX_POINTS = 200;
 
     public static void showClaimBoundary(Player player, Claim claim) {
         World world = player.getServer().getWorld(claim.getWorld());
@@ -22,6 +23,7 @@ public class ParticleUtil {
         double radius = claim.getRadius();
         double cx = claim.getX() + 0.5;
         double cz = claim.getZ() + 0.5;
+        int points = Math.min(MAX_POINTS, (int) Math.ceil(2 * Math.PI * radius / SPACING_BLOCKS));
 
         int playerY = player.getLocation().getBlockY();
         int belowY = Math.max(world.getMinHeight(), playerY - 20);
@@ -29,8 +31,8 @@ public class ParticleUtil {
         int[] heights = {belowY, playerY, aboveY};
 
         for (int y : heights) {
-            for (int i = 0; i < POINTS_PER_RING; i++) {
-                double angle = 2 * Math.PI * i / POINTS_PER_RING;
+            for (int i = 0; i < points; i++) {
+                double angle = 2 * Math.PI * i / points;
                 double x = cx + radius * Math.cos(angle);
                 double z = cz + radius * Math.sin(angle);
                 world.spawnParticle(Particle.DUST, x, y, z, 1, 0, 0, 0, 0, color);

@@ -8,7 +8,6 @@ import com.landclaim.data.ClaimRepository;
 import com.landclaim.economy.EconomyManager;
 import com.landclaim.service.ClaimActionResult;
 import com.landclaim.service.ClaimService;
-import com.landclaim.util.ParticleUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -75,8 +74,12 @@ public final class ClaimDetailPage {
                 "&7Type a new claim name in chat"));
         inv.setItem(SLOT_DISPLAYNAME, GuiItems.item(Material.OAK_SIGN, "&eDisplay Name",
                 "&7Type a display name in chat"));
-        inv.setItem(SLOT_BOUNDARY, GuiItems.item(Material.REDSTONE_TORCH, "&dShow Boundary",
-                "&7Draws particles around the claim"));
+        boolean boundaryActive = plugin.getBoundaryManager().isActive(player, claim);
+        inv.setItem(SLOT_BOUNDARY, boundaryActive
+                ? GuiItems.item(Material.LIME_DYE, "&aBoundary Visible",
+                        "&7Click to hide the boundary")
+                : GuiItems.item(Material.REDSTONE_TORCH, "&dShow Boundary",
+                        "&7Click to keep the boundary visible"));
 
         GuiSession.PendingConfirm pending = session.getPendingConfirm();
         boolean armed = pending != null && pending.claimId() == claim.getId() && !pending.expired();
@@ -118,7 +121,10 @@ public final class ClaimDetailPage {
             }
             case SLOT_RENAME -> manager.promptInput(player, GuiSession.InputType.RENAME, claim);
             case SLOT_DISPLAYNAME -> manager.promptInput(player, GuiSession.InputType.DISPLAYNAME, claim);
-            case SLOT_BOUNDARY -> ParticleUtil.showClaimBoundary(player, claim);
+            case SLOT_BOUNDARY -> {
+                manager.getPlugin().getBoundaryManager().toggle(player, claim);
+                manager.openPage(player, GuiPage.CLAIM_DETAIL);
+            }
             case SLOT_DELETE -> {
                 GuiSession.PendingConfirm pending = session.getPendingConfirm();
                 if (pending != null && pending.claimId() == claim.getId() && !pending.expired()) {
