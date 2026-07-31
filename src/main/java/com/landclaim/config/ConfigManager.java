@@ -29,6 +29,7 @@ public class ConfigManager {
     private int gracePeriodDays;
     private boolean guiEnabled;
     private boolean openGuiOnBareClaim;
+    private boolean bedrockInventoryDescriptionsInNames;
     private Map<String, Boolean> flagDefaults = new HashMap<>();
 
     public static final List<String> CLAIM_FLAGS = List.of(
@@ -77,6 +78,7 @@ public class ConfigManager {
         gracePeriodDays = plugin.getConfig().getInt("tax.grace-period-days", 7);
         guiEnabled = plugin.getConfig().getBoolean("gui.enabled", true);
         openGuiOnBareClaim = plugin.getConfig().getBoolean("gui.open-on-bare-claim", true);
+        bedrockInventoryDescriptionsInNames = plugin.getConfig().getBoolean("gui.bedrock.inventory-descriptions-in-names", true);
 
         flagDefaults.clear();
         ConfigurationSection flagsSection = plugin.getConfig().getConfigurationSection("flags");
@@ -110,6 +112,7 @@ public class ConfigManager {
     public int getGracePeriodDays() { return gracePeriodDays; }
     public boolean isGuiEnabled() { return guiEnabled; }
     public boolean isOpenGuiOnBareClaim() { return openGuiOnBareClaim; }
+    public boolean isBedrockInventoryDescriptionsInNames() { return bedrockInventoryDescriptionsInNames; }
 
     public int getEffectiveMaxClaims(Player player) {
         for (int i = 100; i >= 1; i--) {

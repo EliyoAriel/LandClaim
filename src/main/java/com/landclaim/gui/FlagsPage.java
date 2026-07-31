@@ -1,6 +1,7 @@
 package com.landclaim.gui;
 
 import com.landclaim.LandClaimPlugin;
+import com.landclaim.bedrock.BedrockSupport;
 import com.landclaim.config.ConfigManager;
 import com.landclaim.data.Claim;
 import com.landclaim.data.ClaimRepository;
@@ -33,10 +34,12 @@ public final class FlagsPage {
 
         ClaimRepository repository = plugin.getClaimRepository();
         List<String> flags = ConfigManager.CLAIM_FLAGS;
+        boolean descriptionInName = plugin.getConfigManager().isBedrockInventoryDescriptionsInNames()
+                && BedrockSupport.isFloodgatePlayer(player.getUniqueId());
         for (int i = 0; i < flags.size(); i++) {
             String flag = flags.get(i);
             inv.setItem(i, GuiItems.toggle(flag, repository.getClaimFlag(claim.getId(), flag),
-                    FlagDescriptions.CLAIM.getOrDefault(flag, "")));
+                    FlagDescriptions.CLAIM.getOrDefault(flag, ""), descriptionInName));
         }
         inv.setItem(SLOT_BACK, GuiItems.back("Claim"));
         return inv;

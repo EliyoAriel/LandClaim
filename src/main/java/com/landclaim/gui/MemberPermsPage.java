@@ -1,6 +1,7 @@
 package com.landclaim.gui;
 
 import com.landclaim.LandClaimPlugin;
+import com.landclaim.bedrock.BedrockSupport;
 import com.landclaim.config.ConfigManager;
 import com.landclaim.data.Claim;
 import com.landclaim.data.ClaimRepository;
@@ -44,10 +45,12 @@ public final class MemberPermsPage {
 
         ClaimRepository repository = plugin.getClaimRepository();
         List<String> flags = ConfigManager.MEMBER_FLAGS;
+        boolean descriptionInName = plugin.getConfigManager().isBedrockInventoryDescriptionsInNames()
+                && BedrockSupport.isFloodgatePlayer(player.getUniqueId());
         for (int i = 0; i < flags.size(); i++) {
             String flag = flags.get(i);
             inv.setItem(i, GuiItems.toggle(flag, repository.getMemberFlag(claim.getId(), memberUuid, flag),
-                    FlagDescriptions.MEMBER.getOrDefault(flag, "")));
+                    FlagDescriptions.MEMBER.getOrDefault(flag, ""), descriptionInName));
         }
         inv.setItem(SLOT_BACK, GuiItems.back("Members"));
         inv.setItem(SLOT_UNTRUST, GuiItems.item(Material.BARRIER, "&cUntrust " + memberName,

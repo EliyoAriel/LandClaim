@@ -43,8 +43,18 @@ public final class GuiItems {
     }
 
     public static ItemStack toggle(String flag, boolean on, String description) {
+        return toggle(flag, on, description, false);
+    }
+
+    public static ItemStack toggle(String flag, boolean on, String description, boolean descriptionInName) {
         String name = on ? "&a" + flag + ": ON" : "&7" + flag + ": OFF";
         String click = on ? "&7Click to toggle off" : "&7Click to toggle on";
+        if (descriptionInName) {
+            if (description.isEmpty()) {
+                return item(on ? Material.LIME_DYE : Material.GRAY_DYE, name, click);
+            }
+            return item(on ? Material.LIME_DYE : Material.GRAY_DYE, name + " &8- &7" + description, click);
+        }
         if (description.isEmpty()) {
             return item(on ? Material.LIME_DYE : Material.GRAY_DYE, name, click);
         }

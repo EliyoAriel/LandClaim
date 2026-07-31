@@ -7,6 +7,7 @@ Radius-based cylindrical land claiming plugin for Paper 1.21.4.
 - Paper 1.21.4
 - Java 21
 - Vault (optional — economy features)
+- Floodgate (optional — Bedrock support; run alongside Geyser to allow Bedrock players to join)
 
 ## Commands
 
@@ -64,6 +65,10 @@ The **Show Boundary** button is a toggle — click it to keep the claim's partic
 
 Flag and permission toggles in the **Flags** and **Members** pages show a short description of what each option does.
 
+### Bedrock support
+
+With Floodgate installed, Bedrock (Geyser) players are detected automatically — no extra config required. Bedrock clients can't see item hover text, so when `gui.bedrock.inventory-descriptions-in-names` is enabled, the flag/member-permission descriptions are embedded directly in the item names for Bedrock players (Java players keep the clean names + lore). Disable the option to fall back to standard names for everyone.
+
 ## Configuration
 
 ```yaml
@@ -114,6 +119,11 @@ refund-on-delete: 0.7
 gui:
   enabled: true
   open-on-bare-claim: true
+  # Bedrock (Geyser/Floodgate) support
+  bedrock:
+    # Embed flag/member-permission descriptions in item names for Bedrock
+    # players (no hover text on Bedrock); false = standard names for everyone
+    inventory-descriptions-in-names: true
 
 # Tax settings
 tax:

@@ -55,6 +55,11 @@ tax:
 gui:
   enabled: true
   open-on-bare-claim: true
+  # Bedrock (Geyser/Floodgate) support
+  bedrock:
+    # Append flag/member-permission descriptions to the inventory item names so
+    # Bedrock players can read them without hover text
+    inventory-descriptions-in-names: true
 
 # Per-claim flag defaults (owners can override per claim with /claim flag)
 flags:
