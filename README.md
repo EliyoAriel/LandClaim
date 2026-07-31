@@ -37,7 +37,8 @@ Radius-based cylindrical land claiming plugin for Paper 1.21.4.
 | `landclaim.upgrade` | true | Upgrade claim tier |
 | `landclaim.paytax` | true | Pay claim tax |
 | `landclaim.admin` | op | Admin commands |
-| `landclaim.tier.<n>` | — | Unlocks tier `n` (replace with number) |
+| `landclaim.tier.1` | true | Unlocks tier 1 claims |
+| `landclaim.tier.<n>` (n ≥ 2) | false | Unlocks tier `n` (grant to allow upgrades) |
 | `landclaim.claims.<n>` | — | Overrides max claims per player (replace with number) |
 
 ## Configuration

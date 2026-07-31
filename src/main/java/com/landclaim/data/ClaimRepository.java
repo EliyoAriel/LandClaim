@@ -97,6 +97,19 @@ public class ClaimRepository {
         return null;
     }
 
+    public boolean overlapsAny(UUID worldUuid, int x, int z, int radius, Integer excludeClaimId) {
+        List<Claim> claims = claimsByWorld.get(worldUuid);
+        if (claims == null) return false;
+        for (Claim claim : claims) {
+            if (excludeClaimId != null && claim.getId() == excludeClaimId) continue;
+            long dx = claim.getX() - x;
+            long dz = claim.getZ() - z;
+            long sum = (long) radius + claim.getRadius();
+            if (dx * dx + dz * dz < sum * sum) return true;
+        }
+        return false;
+    }
+
     public List<Claim> getPlayerClaims(UUID playerUuid) {
         return claimsById.values().stream()
                 .filter(c -> c.getOwner().equals(playerUuid))

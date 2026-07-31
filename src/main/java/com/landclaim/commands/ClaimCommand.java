@@ -123,14 +123,13 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        Claim existing = claimRepository.getClaimAt(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockZ());
-        if (existing != null) {
+        TierConfig tier1 = configManager.getTiers().getFirst();
+        if (claimRepository.overlapsAny(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockZ(), tier1.getRadius(), null)) {
             player.sendMessage(Component.text("This area is already claimed.", NamedTextColor.RED));
             return true;
         }
 
         if (configManager.isPreventClaimNearSpawn()) {
-            TierConfig tier1 = configManager.getTiers().getFirst();
             Location spawn = loc.getWorld().getSpawnLocation();
             int spawnRadius = plugin.getServer().getSpawnRadius();
             if (spawnRadius > 0) {
@@ -163,7 +162,6 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        TierConfig tier1 = configManager.getTiers().getFirst();
         if (economyManager.hasEconomy() && !economyManager.hasBalance(player, tier1.getCost())) {
             player.sendMessage(Component.text("You need " + economyManager.format(tier1.getCost()) + " to create a claim.", NamedTextColor.RED));
             return true;
@@ -377,6 +375,11 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
                 .findFirst().orElse(null);
         if (nextTier == null) {
             player.sendMessage(Component.text("No higher tiers available.", NamedTextColor.RED));
+            return true;
+        }
+
+        if (claimRepository.overlapsAny(claim.getWorld(), claim.getX(), claim.getZ(), nextTier.getRadius(), claim.getId())) {
+            player.sendMessage(Component.text("Upgrade would overlap another claim.", NamedTextColor.RED));
             return true;
         }
 

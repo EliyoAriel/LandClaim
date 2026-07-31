@@ -42,3 +42,18 @@ permissions:
   landclaim.claims.*:
     description: Maximum number of claims (replace * with a number, e.g. landclaim.claims.5)
     default: false
+  landclaim.tier.1:
+    description: Access to tier 1 claims
+    default: true
+  landclaim.tier.2:
+    description: Access to tier 2 claims
+    default: false
+  landclaim.tier.3:
+    description: Access to tier 3 claims
+    default: false
+  landclaim.tier.4:
+    description: Access to tier 4 claims
+    default: false
+  landclaim.tier.5:
+    description: Access to tier 5 claims
+    default: false

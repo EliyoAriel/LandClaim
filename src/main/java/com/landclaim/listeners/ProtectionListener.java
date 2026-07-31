@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -71,7 +72,9 @@ public class ProtectionListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player victim)) return;
-        if (!(event.getDamager() instanceof Player attacker)) return;
+        Player attacker = event.getDamager() instanceof Player p ? p
+                : event.getDamager() instanceof Projectile proj && proj.getShooter() instanceof Player s ? s : null;
+        if (attacker == null) return;
         if (!configManager.isWorldEnabled(victim.getWorld().getName())) return;
         Claim claim = repository.getClaimAt(victim.getWorld().getUID(), victim.getLocation().getBlockX(), victim.getLocation().getBlockZ());
         if (claim == null || !claim.isActive()) return;
