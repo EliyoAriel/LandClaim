@@ -1,5 +1,7 @@
 package com.landclaim.data;
 
+import com.landclaim.config.ConfigManager;
+
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
@@ -8,16 +10,21 @@ import java.util.stream.Collectors;
 public class ClaimRepository {
 
     private final DatabaseManager db;
+    private final ConfigManager configManager;
     private final Map<UUID, List<Claim>> claimsByWorld = new HashMap<>();
     private final Map<Integer, Claim> claimsById = new HashMap<>();
+    private final Map<Integer, Map<String, Boolean>> claimFlagOverrides = new HashMap<>();
+    private final Map<Integer, Map<UUID, Map<String, Boolean>>> memberFlagOverrides = new HashMap<>();
 
-    public ClaimRepository(DatabaseManager db) {
+    public ClaimRepository(DatabaseManager db, ConfigManager configManager) {
         this.db = db;
+        this.configManager = configManager;
     }
 
     public void loadAllClaims() {
         claimsByWorld.clear();
         claimsById.clear();
+        loadFlagOverrides();
         try (Statement stmt = db.getConnection().createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM claims")) {
             while (rs.next()) {
@@ -37,12 +44,125 @@ public class ClaimRepository {
                         deactivatedAt
                 );
                 claim.setMembers(getMembers(claim.getId()));
+                claim.setDisplayName(rs.getString("displayname"));
                 claimsById.put(claim.getId(), claim);
                 claimsByWorld.computeIfAbsent(claim.getWorld(), k -> new ArrayList<>()).add(claim);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void loadFlagOverrides() {
+        claimFlagOverrides.clear();
+        memberFlagOverrides.clear();
+        try (Statement stmt = db.getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT claim_id, flag, value FROM claim_flags")) {
+            while (rs.next()) {
+                claimFlagOverrides.computeIfAbsent(rs.getInt("claim_id"), k -> new HashMap<>())
+                        .put(rs.getString("flag"), rs.getInt("value") == 1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try (Statement stmt = db.getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT claim_id, player_uuid, flag, value FROM claim_member_flags")) {
+            while (rs.next()) {
+                memberFlagOverrides.computeIfAbsent(rs.getInt("claim_id"), k -> new HashMap<>())
+                        .computeIfAbsent(UUID.fromString(rs.getString("player_uuid")), k -> new HashMap<>())
+                        .put(rs.getString("flag"), rs.getInt("value") == 1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean getClaimFlag(int claimId, String flag) {
+        Boolean override = claimFlagOverrides.getOrDefault(claimId, Map.of()).get(flag);
+        return override != null ? override : configManager.getFlagDefault(flag);
+    }
+
+    public void setClaimFlag(int claimId, String flag, boolean value) {
+        try (PreparedStatement ps = db.getConnection().prepareStatement(
+                "INSERT INTO claim_flags (claim_id, flag, value) VALUES (?, ?, ?) " +
+                "ON CONFLICT(claim_id, flag) DO UPDATE SET value = excluded.value")) {
+            ps.setInt(1, claimId);
+            ps.setString(2, flag);
+            ps.setInt(3, value ? 1 : 0);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        claimFlagOverrides.computeIfAbsent(claimId, k -> new HashMap<>()).put(flag, value);
+    }
+
+    public boolean getMemberFlag(int claimId, UUID playerUuid, String flag) {
+        Boolean override = memberFlagOverrides.getOrDefault(claimId, Map.of())
+                .getOrDefault(playerUuid, Map.of()).get(flag);
+        return override == null || override;
+    }
+
+    public void setMemberFlag(int claimId, UUID playerUuid, String flag, boolean value) {
+        try (PreparedStatement ps = db.getConnection().prepareStatement(
+                "INSERT INTO claim_member_flags (claim_id, player_uuid, flag, value) VALUES (?, ?, ?, ?) " +
+                "ON CONFLICT(claim_id, player_uuid, flag) DO UPDATE SET value = excluded.value")) {
+            ps.setInt(1, claimId);
+            ps.setString(2, playerUuid.toString());
+            ps.setString(3, flag);
+            ps.setInt(4, value ? 1 : 0);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        memberFlagOverrides.computeIfAbsent(claimId, k -> new HashMap<>())
+                .computeIfAbsent(playerUuid, k -> new HashMap<>()).put(flag, value);
+    }
+
+    public void deleteMemberFlags(int claimId, UUID playerUuid) {
+        try (PreparedStatement ps = db.getConnection().prepareStatement(
+                "DELETE FROM claim_member_flags WHERE claim_id = ? AND player_uuid = ?")) {
+            ps.setInt(1, claimId);
+            ps.setString(2, playerUuid.toString());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        Map<UUID, Map<String, Boolean>> members = memberFlagOverrides.get(claimId);
+        if (members != null) {
+            members.remove(playerUuid);
+        }
+    }
+
+    public void setDisplayName(int claimId, String displayName) {
+        try (PreparedStatement ps = db.getConnection().prepareStatement(
+                "UPDATE claims SET displayname = ? WHERE id = ?")) {
+            ps.setString(1, displayName);
+            ps.setInt(2, claimId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        Claim claim = claimsById.get(claimId);
+        if (claim != null) {
+            claim.setDisplayName(displayName);
+        }
+    }
+
+    public boolean renameClaim(int claimId, String newName) {
+        try (PreparedStatement ps = db.getConnection().prepareStatement(
+                "UPDATE claims SET name = ? WHERE id = ?")) {
+            ps.setString(1, newName);
+            ps.setInt(2, claimId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        Claim claim = claimsById.get(claimId);
+        if (claim != null) {
+            claim.setName(newName);
+            return true;
+        }
+        return false;
     }
 
     public Claim createClaim(UUID owner, String name, UUID world, int x, int z, int radius, int tier) {

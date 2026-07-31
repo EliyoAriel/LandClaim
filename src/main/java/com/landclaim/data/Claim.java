@@ -7,6 +7,7 @@ public class Claim {
     private final int id;
     private final UUID owner;
     private String name;
+    private String displayName;
     private final UUID world;
     private final int x;
     private final int z;
@@ -46,6 +47,10 @@ public class Claim {
     public UUID getOwner() { return owner; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public String getDisplayName() {
+        return displayName != null && !displayName.isEmpty() ? displayName : name;
+    }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
     public UUID getWorld() { return world; }
     public int getX() { return x; }
     public int getZ() { return z; }

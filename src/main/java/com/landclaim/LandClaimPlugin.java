@@ -7,7 +7,11 @@ import com.landclaim.data.ClaimRepository;
 import com.landclaim.data.DatabaseManager;
 import com.landclaim.data.TaxManager;
 import com.landclaim.economy.EconomyManager;
-import com.landclaim.listeners.ProtectionListener;
+import com.landclaim.listeners.EntityProtectionListener;
+import com.landclaim.listeners.EnvironmentProtectionListener;
+import com.landclaim.listeners.GreetingListener;
+import com.landclaim.listeners.PlayerProtectionListener;
+import com.landclaim.protection.ClaimAccess;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class LandClaimPlugin extends JavaPlugin {
@@ -17,6 +21,7 @@ public class LandClaimPlugin extends JavaPlugin {
     private ClaimRepository claimRepository;
     private EconomyManager economyManager;
     private TaxManager taxManager;
+    private ClaimAccess claimAccess;
     private ClaimCommand claimCommand;
     private ClaimAdminCommand claimAdminCommand;
 
@@ -24,11 +29,12 @@ public class LandClaimPlugin extends JavaPlugin {
     public void onEnable() {
         this.configManager = new ConfigManager(this);
         this.databaseManager = new DatabaseManager(this);
-        this.claimRepository = new ClaimRepository(databaseManager);
+        this.claimRepository = new ClaimRepository(databaseManager, configManager);
         this.economyManager = new EconomyManager(this);
         this.taxManager = new TaxManager(this, claimRepository);
-        this.claimCommand = new ClaimCommand(this, claimRepository, economyManager, taxManager, configManager);
-        this.claimAdminCommand = new ClaimAdminCommand(this, claimRepository, configManager);
+        this.claimAccess = new ClaimAccess(this, claimRepository, configManager);
+        this.claimCommand = new ClaimCommand(this, claimRepository, economyManager, taxManager, configManager, claimAccess);
+        this.claimAdminCommand = new ClaimAdminCommand(this, claimRepository, configManager, claimAccess);
 
         databaseManager.initialize();
         claimRepository.loadAllClaims();
@@ -40,7 +46,10 @@ public class LandClaimPlugin extends JavaPlugin {
             claimCmd.setTabCompleter(claimCommand);
         }
 
-        getServer().getPluginManager().registerEvents(new ProtectionListener(this, claimRepository, configManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerProtectionListener(claimAccess), this);
+        getServer().getPluginManager().registerEvents(new EntityProtectionListener(claimAccess), this);
+        getServer().getPluginManager().registerEvents(new EnvironmentProtectionListener(claimAccess), this);
+        getServer().getPluginManager().registerEvents(new GreetingListener(this, claimRepository, configManager), this);
 
         taxManager.scheduleTaxCheck();
 
@@ -59,6 +68,7 @@ public class LandClaimPlugin extends JavaPlugin {
     public ClaimRepository getClaimRepository() { return claimRepository; }
     public EconomyManager getEconomyManager() { return economyManager; }
     public TaxManager getTaxManager() { return taxManager; }
+    public ClaimAccess getClaimAccess() { return claimAccess; }
     public ClaimCommand getClaimCommand() { return claimCommand; }
     public ClaimAdminCommand getClaimAdminCommand() { return claimAdminCommand; }
 }

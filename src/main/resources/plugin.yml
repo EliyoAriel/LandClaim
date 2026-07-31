@@ -36,6 +36,9 @@ permissions:
   landclaim.paytax:
     description: Pay claim tax
     default: true
+  landclaim.manage:
+    description: Manage claim settings (flags, member permissions, rename)
+    default: true
   landclaim.admin:
     description: Admin commands
     default: op

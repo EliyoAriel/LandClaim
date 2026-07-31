@@ -19,6 +19,9 @@ public class DatabaseManager {
             connection = DriverManager.getConnection(
                     "jdbc:sqlite:" + plugin.getDataFolder().getAbsolutePath() + "/landclaim.db"
             );
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("PRAGMA foreign_keys = ON");
+            }
             createTables();
             migrate();
         } catch (Exception e) {
@@ -33,6 +36,7 @@ public class DatabaseManager {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     owner_uuid TEXT NOT NULL,
                     name TEXT NOT NULL,
+                    displayname TEXT,
                     world_uuid TEXT NOT NULL,
                     center_x INTEGER NOT NULL,
                     center_z INTEGER NOT NULL,
@@ -61,6 +65,25 @@ public class DatabaseManager {
                     FOREIGN KEY (claim_id) REFERENCES claims(id) ON DELETE CASCADE
                 )
             """);
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS claim_flags (
+                    claim_id INTEGER NOT NULL,
+                    flag TEXT NOT NULL,
+                    value INTEGER NOT NULL,
+                    PRIMARY KEY (claim_id, flag),
+                    FOREIGN KEY (claim_id) REFERENCES claims(id) ON DELETE CASCADE
+                )
+            """);
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS claim_member_flags (
+                    claim_id INTEGER NOT NULL,
+                    player_uuid TEXT NOT NULL,
+                    flag TEXT NOT NULL,
+                    value INTEGER NOT NULL,
+                    PRIMARY KEY (claim_id, player_uuid, flag),
+                    FOREIGN KEY (claim_id) REFERENCES claims(id) ON DELETE CASCADE
+                )
+            """);
         }
     }
 
@@ -76,6 +99,13 @@ public class DatabaseManager {
             if (!rs.next()) {
                 try (Statement stmt = getConnection().createStatement()) {
                     stmt.execute("ALTER TABLE claims ADD COLUMN deactivated_at TEXT");
+                }
+            }
+        }
+        try (ResultSet rs = getConnection().getMetaData().getColumns(null, null, "claims", "displayname")) {
+            if (!rs.next()) {
+                try (Statement stmt = getConnection().createStatement()) {
+                    stmt.execute("ALTER TABLE claims ADD COLUMN displayname TEXT");
                 }
             }
         }

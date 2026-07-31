@@ -24,10 +24,22 @@ max-claims-per-player: 3
 prevent-claim-near-spawn: true
 
 # Display format for /claim list (use & for color codes)
-list-format: "&6{name} &7- &f({x}, {z}) &7Radius: &f{radius} &7Tier: &f{tier} &7[{status}]"
+list-format: "&6{displayname} &7- &f({x}, {z}) &7Radius: &f{radius} &7Tier: &f{tier} &7[{status}]"
 
 # Display format for /claim info (use & for color codes, \\n for newlines)
-info-format: "&6=== {name} ===\n&7Owner: &f{owner}\n&7Location: &f({x}, {z}) in {world}\n&7Radius: &f{radius}\n&7Tier: &f{tier}\n&7Status: &f{status}\n&7Members: &f{members}"
+info-format: "&6=== {displayname} ===\n&7Owner: &f{owner}\n&7Location: &f({x}, {z}) in {world}\n&7Radius: &f{radius}\n&7Tier: &f{tier}\n&7Status: &f{status}\n&7Members: &f{members}"
+
+# Title shown when entering a claim (use & for color codes, {displayname} and {owner} placeholders)
+greeting-title-format: "&aWelcome to &f{displayname}"
+
+# Title shown when leaving a claim (use & for color codes, {displayname} and {owner} placeholders)
+farewell-title-format: "&eLeaving &f{displayname}"
+
+# Subtitle shown under the greeting/farewell title ({owner} placeholder)
+title-subtitle-format: "&7Owned by &f{owner}"
+
+# Actionbar shown briefly when entering a claim (use & for color codes, {owner} and {displayname} placeholders)
+actionbar-format: "&f{owner} &7owns &f{displayname}"
 
 # Refund percentage on delete (0.0 - 1.0)
 refund-on-delete: 0.7
@@ -38,3 +50,19 @@ tax:
   amount-per-tier: 50.0
   period-days: 7
   grace-period-days: 7
+
+# Per-claim flag defaults (owners can override per claim with /claim flag)
+flags:
+  pvp: false
+  explosions: false
+  mobs: true
+  firespread: false
+  public-use: false
+  fluidflow: false
+  public-build: false
+  public-items: false
+  teleport: false
+  crops: false
+  decay: false
+  pistons: false
+  gravity: false

@@ -4,6 +4,7 @@ import com.landclaim.LandClaimPlugin;
 import com.landclaim.config.ConfigManager;
 import com.landclaim.data.Claim;
 import com.landclaim.data.ClaimRepository;
+import com.landclaim.protection.ClaimAccess;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -21,11 +22,13 @@ public class ClaimAdminCommand {
     private final LandClaimPlugin plugin;
     private final ClaimRepository claimRepository;
     private final ConfigManager configManager;
+    private final ClaimAccess claimAccess;
 
-    public ClaimAdminCommand(LandClaimPlugin plugin, ClaimRepository claimRepository, ConfigManager configManager) {
+    public ClaimAdminCommand(LandClaimPlugin plugin, ClaimRepository claimRepository, ConfigManager configManager, ClaimAccess claimAccess) {
         this.plugin = plugin;
         this.claimRepository = claimRepository;
         this.configManager = configManager;
+        this.claimAccess = claimAccess;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -123,13 +126,13 @@ public class ClaimAdminCommand {
                 .replace("{status}", status)
                 .replace("{world}", worldName)
                 .replace("{id}", String.valueOf(claim.getId()))
-                .replace("{members}", membersStr);
+                .replace("{members}", membersStr)
+                .replace("{displayname}", claim.getDisplayName());
 
         return LegacyComponentSerializer.legacyAmpersand().deserialize(formatted);
     }
 
     private String getOwnerName(UUID uuid) {
-        OfflinePlayer owner = Bukkit.getOfflinePlayer(uuid);
-        return owner.getName() != null ? owner.getName() : uuid.toString();
+        return claimAccess.resolveOwnerName(uuid);
     }
 }
