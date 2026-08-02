@@ -4,16 +4,19 @@ import com.landclaim.boundary.BoundaryManager;
 import com.landclaim.commands.ClaimAdminCommand;
 import com.landclaim.commands.ClaimCommand;
 import com.landclaim.config.ConfigManager;
+import com.landclaim.api.LandClaimAPI;
 import com.landclaim.data.ClaimRepository;
 import com.landclaim.data.DatabaseManager;
 import com.landclaim.data.TaxManager;
 import com.landclaim.economy.EconomyManager;
 import com.landclaim.gui.GuiInputHandler;
 import com.landclaim.gui.GuiManager;
+import com.landclaim.integration.RewindHook;
 import com.landclaim.listeners.EntityProtectionListener;
 import com.landclaim.listeners.EnvironmentProtectionListener;
 import com.landclaim.listeners.GreetingListener;
 import com.landclaim.listeners.PlayerProtectionListener;
+import com.landclaim.listeners.PluginEnableListener;
 import com.landclaim.protection.ClaimAccess;
 import com.landclaim.service.ClaimService;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -50,6 +53,12 @@ public class LandClaimPlugin extends JavaPlugin {
         claimRepository.loadAllClaims();
         economyManager.setup();
 
+        LandClaimAPI.init(this);
+        RewindHook.init();
+        if (RewindHook.isEnabled()) {
+            RewindHook.rebuild(claimRepository.getAllClaims());
+        }
+
         var claimCmd = getCommand("claim");
         if (claimCmd != null) {
             claimCmd.setExecutor(claimCommand);
@@ -63,6 +72,7 @@ public class LandClaimPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(guiManager, this);
         getServer().getPluginManager().registerEvents(new GuiInputHandler(guiManager), this);
         getServer().getPluginManager().registerEvents(boundaryManager, this);
+        getServer().getPluginManager().registerEvents(new PluginEnableListener(), this);
 
         boundaryManager.start();
         taxManager.scheduleTaxCheck();

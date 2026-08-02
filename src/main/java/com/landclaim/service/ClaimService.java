@@ -122,6 +122,7 @@ public class ClaimService {
         }
 
         economyManager.withdraw(player, nextTier.getCost());
+        com.landclaim.integration.RewindHook.syncClaim(claim, claim.getRadius(), nextTier.getRadius());
         claimRepository.upgradeClaim(claim.getId(), nextTier.getRadius(), nextTier.getTier());
         return ClaimActionResult.ok(Component.text("Claim \"", NamedTextColor.GREEN)
                 .append(renderDisplayName(claim))
@@ -242,6 +243,7 @@ public class ClaimService {
             refundMessage = Component.text("Refunded: " + economyManager.format(refund), NamedTextColor.GREEN);
         }
 
+        com.landclaim.integration.RewindHook.unexcludeClaim(claim);
         claimRepository.deleteClaim(claim.getId());
         Component deleted = Component.text("Claim \"", NamedTextColor.GREEN)
                 .append(renderDisplayName(claim))

@@ -64,6 +64,8 @@ public class EnvironmentProtectionListener implements Listener {
 
     @EventHandler
     public void onCreatureSpawn(CreatureSpawnEvent event) {
+        if (com.landclaim.integration.SupplyDropHook.isParachuteEntity(event.getEntity())) return;
+        if (com.landclaim.api.LandClaimAPI.isParachuteSpawn(event.getEntity().getLocation())) return;
         if (guard.shouldCancelByClaimFlag(event.getEntity().getLocation(), "mobs")) {
             event.setCancelled(true);
         }

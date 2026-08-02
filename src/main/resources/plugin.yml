@@ -4,7 +4,7 @@ main: com.landclaim.LandClaimPlugin
 api-version: '1.21'
 description: Radius-based land claiming with economy upgrades
 authors: [BaseFields]
-softdepend: [Vault, floodgate]
+softdepend: [Vault, floodgate, Rewind, SupplyDrop]
 
 commands:
   claim:

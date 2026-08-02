@@ -207,6 +207,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
         );
 
         if (claim != null) {
+            com.landclaim.integration.RewindHook.excludeClaim(claim);
             player.sendMessage(Component.text("Claim \"" + name + "\" created! Radius: " + tier1.getRadius(), NamedTextColor.GREEN));
             ParticleUtil.showClaimBoundary(player, claim);
         }

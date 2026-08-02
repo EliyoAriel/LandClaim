@@ -44,6 +44,7 @@ public class TaxManager {
         for (Claim claim : claimRepository.getAllClaims()) {
             if (!claim.isActive()) continue;
             if (!hasPaidRecentTax(claim, cutoff)) {
+                com.landclaim.integration.RewindHook.unexcludeClaim(claim);
                 claimRepository.setClaimActive(claim.getId(), false);
                 plugin.getLogger().info("Claim " + claim.getId() + " deactivated (unpaid tax).");
             }
@@ -64,6 +65,7 @@ public class TaxManager {
         }
 
         for (Claim claim : toDelete) {
+            com.landclaim.integration.RewindHook.unexcludeClaim(claim);
             claimRepository.deleteClaim(claim.getId());
             plugin.getLogger().info("Claim " + claim.getId() + " permanently deleted (expired tax grace period).");
         }
@@ -127,6 +129,7 @@ public class TaxManager {
             }
             if (!claim.isActive()) {
                 claimRepository.setClaimActive(claim.getId(), true);
+                com.landclaim.integration.RewindHook.excludeClaim(claim);
             }
         }
 

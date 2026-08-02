@@ -8,6 +8,8 @@ Radius-based cylindrical land claiming plugin for Paper 1.21.4.
 - Java 21
 - Vault (optional — economy features)
 - Floodgate (optional — Bedrock support; run alongside Geyser to allow Bedrock players to join)
+- Rewind (optional — automatically excludes claims from Rewind chunk restores)
+- SupplyDrop (optional — supply crates and their loot bypass claim protection)
 
 ## Commands
 
@@ -193,6 +195,40 @@ Member permissions (default all `on`, toggled per member with `/claim perm`):
 ## Database
 
 SQLite (`landclaim.db` in plugin data folder). Tables: `claims`, `claim_members`, `claim_taxes`, `claim_flags`, `claim_member_flags`.
+
+## Integrations
+
+### Rewind
+
+When [Rewind](../Rewind/README.md) is installed, claims are automatically excluded from Rewind's chunk restores:
+
+- Creating a claim excludes its chunks from restore; deleting (including admin delete and tax auto-delete) re-includes them.
+- Upgrading a claim re-syncs the excluded area to the new radius.
+- `/claim admin reload` rebuilds all claim exclusions.
+- Exclusions are ref-counted, so overlapping claims don't collide.
+
+### SupplyDrop
+
+When [SupplyDrop](../SupplyDrop/README.md) is installed:
+
+- Landed supply crates can be broken and opened inside claims by anyone — build/interact protection is skipped for them.
+- Items dropped from crates (`supplydrop:crate-loot`) can be picked up inside claims by non-owners.
+- Parachute and hologram entities spawned by SupplyDrop are exempt from the `mobs` flag, so drops work even in claims with mob spawning blocked.
+
+## Developer API
+
+Static `com.landclaim.api.LandClaimAPI`:
+
+| Method | Description |
+|--------|-------------|
+| `isAvailable()` | True when the plugin is loaded and enabled |
+| `isInClaim(Location)` | True when the location is inside an active claim |
+| `canBuild(Player, Location)` | True when the player can build at the location |
+| `registerParachuteSpawn(Location)` | Mark a location as an imminent SupplyDrop spawn (exempt from the `mobs` flag) |
+| `clearParachuteSpawn(Location)` | Remove the marker |
+| `isParachuteSpawn(Location)` | True while the location is marked |
+
+SupplyDrop calls these via reflection — no compile-time dependency.
 
 ## Build
 

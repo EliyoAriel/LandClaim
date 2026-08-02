@@ -35,6 +35,7 @@ public class PlayerProtectionListener implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
+        if (com.landclaim.integration.SupplyDropHook.isSupplyCrate(event.getBlock())) return;
         if (!guard.hasAction(event.getPlayer(), event.getBlock().getLocation(), ClaimAccess.Action.BUILD)) {
             event.setCancelled(true);
             guard.deny(event.getPlayer(), "This area is claimed.");
@@ -52,6 +53,7 @@ public class PlayerProtectionListener implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() == null) return;
+        if (com.landclaim.integration.SupplyDropHook.isSupplyCrate(event.getClickedBlock())) return;
         Material material = event.getClickedBlock().getType();
         ClaimAccess.Action action = classifyInteract(material);
         if (action == null) return;
@@ -152,6 +154,7 @@ public class PlayerProtectionListener implements Listener {
     @EventHandler
     public void onPickupItem(EntityPickupItemEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
+        if (com.landclaim.integration.SupplyDropHook.isCrateLoot(event.getItem())) return;
         if (!guard.hasAction(player, event.getItem().getLocation(), ClaimAccess.Action.ITEMS)) {
             event.setCancelled(true);
         }

@@ -94,6 +94,7 @@ public class ClaimAdminCommand {
             return true;
         }
         for (Claim c : claims) {
+            com.landclaim.integration.RewindHook.unexcludeClaim(c);
             claimRepository.deleteClaim(c.getId());
         }
         sender.sendMessage(Component.text("Deleted " + claims.size() + " claim(s) for " + target.getName(), NamedTextColor.GREEN));
@@ -103,6 +104,8 @@ public class ClaimAdminCommand {
     private boolean onAdminReload(CommandSender sender) {
         configManager.reload();
         claimRepository.loadAllClaims();
+        com.landclaim.integration.RewindHook.init();
+        com.landclaim.integration.RewindHook.rebuild(claimRepository.getAllClaims());
         sender.sendMessage(Component.text("Config and claims reloaded.", NamedTextColor.GREEN));
         return true;
     }
